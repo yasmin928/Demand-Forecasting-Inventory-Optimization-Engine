@@ -1,93 +1,125 @@
 # 📦 Demand Forecasting & Inventory Optimization Engine
 
-🚀 An end-to-end Data Science project that predicts product demand and optimizes inventory decisions using Machine Learning and an interactive dashboard.
+🚀 An end-to-end machine learning system that predicts product demand and optimizes inventory decisions using LightGBM, XGBoost, MLflow tracking, and a Flask analytics dashboard.
 
 ## 🧠 Business Problem
 
-Retail companies often face:
-- 📉 Stockouts → Lost sales & customer dissatisfaction  
-- 📈 Overstock → High holding & storage costs  
+Retail businesses constantly struggle with:
+- 📉 Stockouts → Lost revenue + unhappy customers  
+- 📈 Overstock → Increased storage + capital costs  
 
-🎯 Goal: Build a smart system to forecast demand and optimize inventory decisions.
+🎯 Objective: Build an intelligent system that forecasts demand, identifies inventory risks, and supports data-driven replenishment decisions.
 
-## 🏗️ Project Architecture
+## 🏗️ System Architecture
 
-Raw Data → Cleaning → Feature Engineering → Model Training → API → Dashboard
+Raw Data → Data Cleaning & Feature Engineering → Time Series Feature Creation → Model Training (LightGBM / XGBoost) → MLflow Tracking → Flask API → Interactive Dashboard (Chart.js)
 
-## 📊 Dataset
+## 📊 Dataset Overview
 
-Retail Store Inventory Dataset including:
+Retail inventory dataset includes:
 - Store ID, Product ID  
 - Inventory Level, Units Sold, Units Ordered  
-- Price, Discount, Competitor Pricing  
-- Weather Condition, Region, Seasonality  
-- Holiday / Promotion  
+- Pricing & Discount data  
+- Competitor pricing  
+- Weather conditions  
+- Region & seasonality  
+- Holiday & promotion flags  
 
-## ⚙️ Key Features
+## ⚙️ Feature Engineering
 
-### 🔹 Data Processing
+### 🔹 Data Preprocessing
 - Missing value handling  
-- Data type fixing  
-- Feature engineering (lag & rolling features)  
-- Encoding (Label Encoding + One-Hot Encoding)
+- Data type standardization  
+- Encoding (Label / One-Hot Encoding)  
 
-### 🔹 Time Series Engineering
-- Lag Features: lag_1, lag_7, lag_14, lag_30  
+### 🔹 Time-Series Features
+- Lag features: lag_1, lag_7, lag_14, lag_30  
 - Rolling mean & standard deviation  
-- Stationarity Check (ADF Test)
+- Trend & seasonality extraction  
+- Stationarity testing (ADF test)  
 
-### 🔹 Machine Learning Models
-- LightGBM  
-- XGBoost  
+## 🤖 Machine Learning Models
 
-### 🔹 Inventory Optimization Logic
+- ⚡ LightGBM Regressor  
+- ⚡ XGBoost Regressor  
 
-Inventory > 1.5 × Demand → 🟡 Overstock  
-Inventory < 0.5 × Demand → 🔴 Stockout  
-Otherwise → 🟢 Normal  
+Models predict:
+👉 Future Units Sold (Demand Forecasting)
+
+## 📦 Inventory Optimization Logic
+
+- 🔴 Stockout Risk → Inventory < 0.5 × Forecasted Demand  
+- 🟡 Overstock Risk → Inventory > 1.5 × Forecasted Demand  
+- 🟢 Normal → Otherwise  
 
 ## 📈 Dashboard Features
 
-Built using Flask + HTML + Chart.js:
-- 📊 Inventory Status Summary  
-- 🥧 Pie Chart  
-- 🔍 Filters: Store, Product, Category, Region  
-- 📋 Product-level status table  
+Built using Flask + Chart.js:
 
-## 🧪 Model Performance
+### 📊 Core Analytics
+- Inventory status overview  
+- Demand vs inventory comparison  
+- Stock trend analysis  
 
-XGBoost → MAE ~69 | RMSE ~89 | R² ~0.33  
-LightGBM → MAE ~69 | RMSE ~89 | R² ~0.33  
+### 🔍 Filters
+- Store  
+- Product  
+- Category  
+- Region  
+
+### 📉 Visualizations
+- Status distribution (donut chart)  
+- Inventory vs sales comparison  
+- Overstock ranking  
+- Stockout-risk ranking  
+- Category breakdown  
+
+## 🧪 MLflow Tracking
+
+MLflow is used to track:
+- Model versions  
+- Metrics (MAE, RMSE, R²)  
+- Experiments for LightGBM and XGBoost  
+- Feature configurations  
 
 ## 📁 Project Structure
 
-demand-forecasting/  
-├── data/  
-├── notebooks/  
-├── models/  
-├── templates/  
-├── app.py  
-└── README.md  
+demand-forecasting/
+├── data/
+├── notebooks/
+├── models/
+├── mlruns/
+├── templates/
+│   └── dashboard.html
+├── app.py
+├── train.py
+└── README.md
 
 ## 🚀 How to Run
 
-Install dependencies: pip install pandas numpy scikit-learn lightgbm xgboost flask matplotlib seaborn  
+### Install dependencies
+pip install pandas numpy scikit-learn lightgbm xgboost flask mlflow matplotlib seaborn
 
-Run the app: python app.py  
+### Run MLflow UI (optional)
+mlflow ui
 
-Open in browser: http://127.0.0.1:5000  
+### Run Flask app
+python app.py
+
+### Open dashboard
+http://127.0.0.1:5000
 
 ## 📊 Key Insights
 
-- Demand shows seasonal patterns  
-- Some products are consistently overstocked  
-- Others frequently face stockouts  
-- Inventory decisions can be improved using ML  
+- Demand shows strong seasonal patterns  
+- Some SKUs consistently cause overstock  
+- Others frequently hit stockout risk  
+- ML significantly improves inventory visibility and decision-making  
 
 ## 🔮 Future Improvements
 
-- Real-time forecasting API  
-- Auto reorder recommendation system  
-- Cloud deployment (Azure / AWS)  
-- MLOps pipeline  
-
+- Real-time forecasting pipeline  
+- Auto-replenishment system  
+- Cloud deployment (AWS / Azure / GCP)  
+- Full MLOps CI/CD pipeline  
+- Advanced anomaly detection for demand spikes  
