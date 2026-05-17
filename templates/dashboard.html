@@ -1,150 +1,650 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Inventory Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    :root {
+      --bg:        #0f1117;
+      --surface:   #181b24;
+      --surface2:  #1e2230;
+      --border:    #2a2f3f;
+      --text:      #e8eaf0;
+      --muted:     #6b7280;
+      --accent:    #4f8ef7;
+      --normal:    #22c987;
+      --normal-bg: #0d2e22;
+      --over:      #f6a623;
+      --over-bg:   #2d1f00;
+      --out:       #f05454;
+      --out-bg:    #2d0e0e;
+      --radius:    10px;
+    }
 
-    <style>
-        body { font-family: Arial; padding: 20px; background: #f4f6f8; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 2.5rem;
+    }
 
-        h1 { text-align: center; }
+    /* ── Page header ── */
+    .page-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-bottom: 1.75rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border);
+    }
+    .page-header h1 { font-size: 1.7rem; font-weight: 600; letter-spacing: -0.5px; }
+    .page-header h1 span { color: var(--accent); }
+    .page-header p { font-size: 0.82rem; color: var(--muted); margin-top: 3px; }
+    .badge-live {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(79,142,247,0.12); border: 1px solid rgba(79,142,247,0.3);
+      color: var(--accent); font-size: 0.75rem; font-weight: 500;
+      padding: 5px 12px; border-radius: 20px;
+    }
+    .badge-live::before {
+      content: ''; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent); animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.35;} }
 
-        form {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: 4px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 4px;
+      width: fit-content; margin-bottom: 1.75rem;
+    }
+    .tabs a {
+      text-decoration: none; font-size: 0.85rem; font-weight: 500;
+      padding: 7px 20px; border-radius: 7px; color: var(--muted);
+      transition: background 0.15s, color 0.15s;
+    }
+    .tabs a:hover { color: var(--text); background: var(--surface2); }
+    .tabs a.active { background: var(--accent); color: #fff; }
 
-        select, button {
-            margin: 5px;
-            padding: 5px;
-        }
+    /* ── Filters ── */
+    .filters {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px; margin-bottom: 1.5rem;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 5px; }
+    .filter-group label {
+      font-size: 0.72rem; font-weight: 500; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted);
+    }
+    .filter-group select {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.85rem;
+      padding: 8px 32px 8px 12px; border-radius: var(--radius); appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+      cursor: pointer; transition: border-color .15s; width: 100%;
+    }
+    .filter-group select:focus { outline: none; border-color: var(--accent); }
 
-        table {
-            width: 70%;
-            margin: auto;
-            border-collapse: collapse;
-            background: white;
-        }
+    /* ── Metrics ── */
+    .metrics {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px; margin-bottom: 1.5rem;
+    }
+    .metric {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem 1.2rem;
+      position: relative; overflow: hidden;
+    }
+    .metric::after {
+      content: ''; position: absolute; left:0; top:0; bottom:0;
+      width: 3px; border-radius: 3px 0 0 3px;
+    }
+    .metric.normal::after    { background: var(--normal); }
+    .metric.overstock::after { background: var(--over); }
+    .metric.stockout::after  { background: var(--out); }
+    .metric.accent-m::after  { background: var(--accent); }
+    .metric .m-label {
+      font-size: .7rem; font-weight: 500; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--muted); margin-bottom: 5px;
+    }
+    .metric .m-value { font-size: 1.9rem; font-weight: 600; line-height: 1; font-family: 'DM Mono', monospace; }
+    .metric.normal    .m-value { color: var(--normal); }
+    .metric.overstock .m-value { color: var(--over); }
+    .metric.stockout  .m-value { color: var(--out); }
+    .metric.accent-m  .m-value { color: var(--accent); }
+    .metric .m-sub { font-size: .71rem; color: var(--muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
 
-        th, td { padding: 10px; text-align: center; }
+    /* ── Table card ── */
+    .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .table-card-header {
+      padding: .9rem 1.25rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .table-card-header span { font-size: .85rem; font-weight: 500; }
+    .table-card-header small { font-size: .75rem; color: var(--muted); }
 
-        th { background: black; color: white; }
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    thead th {
+      background: var(--surface2); padding: 9px 14px; text-align: left;
+      font-size: .7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--muted); border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    td { padding: 9px 14px; color: var(--text); font-family: 'DM Mono', monospace; font-size: .8rem; }
+    td.label-col { font-family: 'DM Sans', sans-serif; font-size: .83rem; }
 
-        .overstock { color: orange; font-weight: bold; }
-        .stockout { color: red; font-weight: bold; }
-        .normal { color: green; font-weight: bold; }
-    </style>
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: .7rem; font-weight: 600; font-family: 'DM Sans', sans-serif; letter-spacing: .03em;
+    }
+    .badge-Normal    { background: var(--normal-bg); color: var(--normal); border: 1px solid rgba(34,201,135,.25); }
+    .badge-Overstock { background: var(--over-bg);   color: var(--over);   border: 1px solid rgba(246,166,35,.25); }
+    .badge-Stockout  { background: var(--out-bg);    color: var(--out);    border: 1px solid rgba(240,84,84,.25); }
+
+    /* ── Model pills ── */
+    .model-pills { display: flex; gap: 8px; margin-bottom: 1.5rem; }
+    .model-pill {
+      text-decoration: none; font-size: .82rem; font-weight: 500;
+      padding: 6px 18px; border-radius: 20px; border: 1px solid var(--border);
+      color: var(--muted); transition: all .15s;
+    }
+    .model-pill:hover { border-color: var(--accent); color: var(--accent); }
+    .model-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ── Pagination ── */
+    .pagination {
+      display: flex; align-items: center; gap: 6px;
+      padding: 1rem 1.25rem; border-top: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .pagination a, .pagination span {
+      display: inline-block; padding: 5px 12px; border-radius: 6px;
+      font-size: .78rem; text-decoration: none; border: 1px solid var(--border); color: var(--muted);
+    }
+    .pagination a:hover { border-color: var(--accent); color: var(--accent); }
+    .pagination span.current { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .pagination .pg-info { margin-left: auto; font-size: .75rem; color: var(--muted); border: none; }
+
+    /* ── Error ── */
+    .error-box {
+      background: var(--out-bg); border: 1px solid rgba(240,84,84,.3);
+      border-radius: var(--radius); padding: 1.2rem 1.5rem;
+      color: var(--out); font-size: .85rem; margin-bottom: 1.5rem;
+    }
+    .empty-row td { text-align: center; color: var(--muted); padding: 2.5rem; font-family: 'DM Sans', sans-serif; }
+
+    /* ── Chart grid ── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 1.75rem;
+    }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem 0.9rem;   /* smaller */
+}
+    .chart-card.full-width { grid-column: 1 / -1; }
+    .chart-title {
+      font-size: .75rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--muted); margin-bottom: 1rem;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 
 <body>
 
-<h1>📦 Inventory Dashboard</h1>
+  <div class="page-header">
+    <div>
+      <h1>Inventory <span>Dashboard</span></h1>
+      <p>Retail stock status &amp; ML demand predictions</p>
+    </div>
+    <div class="badge-live">Live report</div>
+  </div>
 
-<!-- ================= FILTERS ================= -->
-<form method="get">
+  <div class="tabs">
+    <a href="/"            class="{{ 'active' if active_tab == 'dashboard'   else '' }}">Inventory Status</a>
+    <a href="/predictions" class="{{ 'active' if active_tab == 'predictions' else '' }}">&#129302; Model Predictions</a>
+  </div>
 
-    <!-- STORE -->
-    <select name="store">
-        <option value="">All Stores</option>
-        {% for s in stores %}
-        <option value="{{ s }}"
-            {% if selected_store == s %}selected{% endif %}>
-            {{ s }}
-        </option>
-        {% endfor %}
-    </select>
 
-    <!-- PRODUCT -->
-    <select name="product">
-        <option value="">All Products</option>
-        {% for p in products %}
-        <option value="{{ p }}"
-            {% if selected_product == p %}selected{% endif %}>
-            {{ p }}
-        </option>
-        {% endfor %}
-    </select>
+  {# ══════════════════════════════════════════
+     TAB 1 — INVENTORY STATUS
+  ══════════════════════════════════════════ #}
+  {% if active_tab == 'dashboard' %}
 
-    <!-- CATEGORY -->
-    <select name="category">
-        <option value="">All Categories</option>
-        {% for c in categories %}
-        <option value="{{ c }}"
-            {% if selected_category == c %}selected{% endif %}>
-            {{ c }}
-        </option>
-        {% endfor %}
-    </select>
+  <form method="GET" action="/">
+    <div class="filters">
+      <div class="filter-group">
+        <label>Store</label>
+        <select name="store" onchange="this.form.submit()">
+          <option value="">All stores</option>
+          {% for s in stores %}<option value="{{ s }}" {% if s == selected_store %}selected{% endif %}>{{ s }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Region</label>
+        <select name="region" onchange="this.form.submit()">
+          <option value="">All regions</option>
+          {% for r in regions %}<option value="{{ r }}" {% if r == selected_region %}selected{% endif %}>{{ r }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Category</label>
+        <select name="category" onchange="this.form.submit()">
+          <option value="">All categories</option>
+          {% for c in categories %}<option value="{{ c }}" {% if c == selected_category %}selected{% endif %}>{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Product</label>
+        <select name="product" onchange="this.form.submit()">
+          <option value="">All products</option>
+          {% for p in products %}<option value="{{ p }}" {% if p == selected_product %}selected{% endif %}>{{ p }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+  </form>
 
-    <!-- REGION -->
-    <select name="region">
-        <option value="">All Regions</option>
-        {% for r in regions %}
-        <option value="{{ r }}"
-            {% if selected_region == r %}selected{% endif %}>
-            {{ r }}
-        </option>
-        {% endfor %}
-    </select>
+  <div class="metrics">
+    <div class="metric normal">
+      <div class="m-label">Normal</div>
+      <div class="m-value">{{ counts.get('Normal', 0) }}</div>
+    </div>
+    <div class="metric overstock">
+      <div class="m-label">Overstock</div>
+      <div class="m-value">{{ counts.get('Overstock', 0) }}</div>
+    </div>
+    <div class="metric stockout">
+      <div class="m-label">Stockout</div>
+      <div class="m-value">{{ counts.get('Stockout', 0) }}</div>
+    </div>
+  </div>
 
-    <button type="submit">Apply</button>
-</form>
+  <!-- ═══ 6 CHARTS ═══ -->
+  <div class="charts-grid">
 
-<hr>
+    <!-- Chart 1: Status donut -->
+    <div class="chart-card">
+      <div class="chart-title">Status breakdown</div>
+      <canvas id="chartStatus" height="100"></canvas>
+    </div>
 
-<!-- ================= COUNTS ================= -->
-<h3>📊 Status Summary</h3>
-<ul style="text-align:center;">
-    <li>Overstock: {{ counts.get('Overstock', 0) }}</li>
-    <li>Stockout: {{ counts.get('Stockout', 0) }}</li>
-    <li>Normal: {{ counts.get('Normal', 0) }}</li>
-</ul>
+    <!-- Chart 2: Inventory vs Units Sold -->
+    <div class="chart-card">
+      <div class="chart-title">Avg inventory vs units sold — top products</div>
+      <canvas id="chartInvSold" height="220"></canvas>
+    </div>
 
-<!-- ================= CHART ================= -->
-<div style="width:300px; margin:auto;">
-    <canvas id="pieChart"></canvas>
-</div>
+    <!-- Chart 3: Stock level over time (full width) -->
+    <div class="chart-card full-width">
+      <div class="chart-title">Daily avg stock level over time (last 60 days)</div>
+      <canvas id="chartTime" height="80"></canvas>
+    </div>
 
-<script>
-const counts = JSON.parse('{{ counts | tojson | safe }}');
+    <!-- Chart 4: Top overstocked -->
+    <div class="chart-card">
+      <div class="chart-title">Top overstocked products</div>
+      <canvas id="chartOverstock" height="100"></canvas>
+    </div>
 
-new Chart(document.getElementById("pieChart"), {
-    type: 'pie',
-    data: {
-        labels: Object.keys(counts),
+    <!-- Chart 5: Top stockout-risk -->
+    <div class="chart-card">
+      <div class="chart-title">Top stockout-risk products</div>
+      <canvas id="chartStockout" height="100"></canvas>
+    </div>
+
+    <!-- Chart 6: Category breakdown (full width) -->
+    <div class="chart-card full-width">
+      <div class="chart-title">Avg inventory vs units sold — by category</div>
+      <canvas id="chartCategory" height="80"></canvas>
+    </div>
+
+  </div>
+
+  <script>
+  (function() {
+    const C = {
+      normal:  '#22c987',
+      over:    '#f6a623',
+      out:     '#f05454',
+      accent:  '#4f8ef7',
+      purple:  '#a78bfa',
+      grid:    'rgba(255,255,255,0.05)',
+      text:    '#9ca3af',
+      font:    "'DM Sans', sans-serif",
+    };
+
+    Chart.defaults.font.family = C.font;
+    Chart.defaults.font.size   = 11;
+    Chart.defaults.color       = C.text;
+
+    const tickCfg = { color: C.text, font: { size: 10 } };
+    const gridCfg = { color: C.grid };
+
+    // ── shared tooltip ──────────────────────────────────────
+    const tooltip = {
+      backgroundColor: '#1e2230',
+      borderColor: '#2a2f3f',
+      borderWidth: 1,
+      titleColor: '#e8eaf0',
+      bodyColor: '#9ca3af',
+      padding: 10,
+      cornerRadius: 8,
+    };
+
+    // ── 1. Status donut ─────────────────────────────────────
+    const dStatus = {{ chart_status | safe }};
+    new Chart(document.getElementById('chartStatus'), {
+      type: 'doughnut',
+      data: {
+        labels: dStatus.labels,
         datasets: [{
-            data: Object.values(counts)
+          data: dStatus.values,
+          backgroundColor: [C.normal, C.over, C.out],
+          borderColor: '#181b24',
+          borderWidth: 3,
+          hoverOffset: 6,
         }]
-    }
-});
-</script>
+      },
+      options: {
+        cutout: '68%',
+        plugins: { legend: { position: 'bottom', labels: { padding: 16, boxWidth: 12 } }, tooltip: { plugins: tooltip } },
+      }
+    });
 
-<hr>
+    // ── 2. Inventory vs Units Sold (grouped bar) ────────────
+    const dIS = {{ chart_inv_sold | safe }};
+    new Chart(document.getElementById('chartInvSold'), {
+      type: 'bar',
+      data: {
+        labels: dIS.labels,
+        datasets: [
+          { label: 'Inventory', data: dIS.inventory, backgroundColor: C.accent,  borderRadius: 4, barPercentage: .6 },
+          { label: 'Units Sold',data: dIS.sold,      backgroundColor: C.normal,  borderRadius: 4, barPercentage: .6 },
+        ]
+      },
+      options: {
+        plugins: { legend: { labels: { boxWidth: 10 } }, tooltip: { plugins: tooltip } },
+        scales: {
+          x: { ticks: { ...tickCfg, maxRotation: 45 }, grid: gridCfg },
+          y: { ticks: tickCfg, grid: gridCfg },
+        }
+      }
+    });
 
-<!-- ================= TABLE ================= -->
-<table>
-<tr>
-    <th>Product ID</th>
-    <th>Status</th>
-</tr>
+    // ── 3. Stock level over time (line) ─────────────────────
+    const dT = {{ chart_time | safe }};
+    new Chart(document.getElementById('chartTime'), {
+      type: 'line',
+      data: {
+        labels: dT.labels,
+        datasets: [{
+          label: 'Avg inventory level',
+          data: dT.values,
+          borderColor: C.accent,
+          backgroundColor: 'rgba(79,142,247,0.10)',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          fill: true,
+          tension: 0.35,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false }, tooltip: { plugins: tooltip } },
+        scales: {
+          x: { ticks: { ...tickCfg, maxTicksLimit: 10 }, grid: gridCfg },
+          y: { ticks: tickCfg, grid: gridCfg },
+        }
+      }
+    });
 
-{% for row in data %}
-<tr>
-    <td>{{ row.product_id }}</td>
+    // ── 4. Top overstocked (horizontal bar) ─────────────────
+    const dOV = {{ chart_overstock | safe }};
+    new Chart(document.getElementById('chartOverstock'), {
+      type: 'bar',
+      data: {
+        labels: dOV.labels,
+        datasets: [{
+          label: 'Overstock count',
+          data: dOV.values,
+          backgroundColor: C.over,
+          borderRadius: 4,
+          barPercentage: .55,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false }, tooltip: { plugins: tooltip } },
+        scales: {
+          x: { ticks: tickCfg, grid: gridCfg },
+          y: { ticks: { ...tickCfg, font: { size: 11 } }, grid: { display: false } },
+        }
+      }
+    });
 
-    <td class="
-        {% if row.status == 'Overstock' %}overstock
-        {% elif row.status == 'Stockout' %}stockout
-        {% else %}normal
+    // ── 5. Top stockout-risk (horizontal bar) ────────────────
+    const dSO = {{ chart_stockout | safe }};
+    new Chart(document.getElementById('chartStockout'), {
+      type: 'bar',
+      data: {
+        labels: dSO.labels,
+        datasets: [{
+          label: 'Stockout count',
+          data: dSO.values,
+          backgroundColor: C.out,
+          borderRadius: 4,
+          barPercentage: .55,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false }, tooltip: { plugins: tooltip } },
+        scales: {
+          x: { ticks: tickCfg, grid: gridCfg },
+          y: { ticks: { ...tickCfg, font: { size: 11 } }, grid: { display: false } },
+        }
+      }
+    });
+
+    // ── 6. Category breakdown (grouped bar) ─────────────────
+    const dCat = {{ chart_category | safe }};
+    new Chart(document.getElementById('chartCategory'), {
+      type: 'bar',
+      data: {
+        labels: dCat.labels,
+        datasets: [
+          { label: 'Avg Inventory', data: dCat.inventory, backgroundColor: C.accent, borderRadius: 4, barPercentage: .6 },
+          { label: 'Avg Units Sold',data: dCat.sold,      backgroundColor: C.purple, borderRadius: 4, barPercentage: .6 },
+        ]
+      },
+      options: {
+        plugins: { legend: { labels: { boxWidth: 10 } }, tooltip: { plugins: tooltip } },
+        scales: {
+          x: { ticks: tickCfg, grid: gridCfg },
+          y: { ticks: tickCfg, grid: gridCfg },
+        }
+      }
+    });
+  })();
+  </script>
+
+  <div class="table-card">
+    <div class="table-card-header">
+      <span>Products by status</span>
+      <small>{{ data | length }} product(s)</small>
+    </div>
+    <table>
+      <thead><tr><th>Product ID</th><th>Status</th></tr></thead>
+      <tbody>
+        {% if data %}
+          {% for row in data %}
+          <tr>
+            <td class="label-col">{{ row.product_id }}</td>
+            <td><span class="badge badge-{{ row.status }}">{{ row.status }}</span></td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr class="empty-row"><td colspan="2">No records match the selected filters.</td></tr>
         {% endif %}
-    ">
-        {{ row.status }}
-    </td>
-</tr>
-{% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-</table>
+  {% endif %}
+
+
+  {# ══════════════════════════════════════════
+     TAB 2 — MODEL PREDICTIONS
+  ══════════════════════════════════════════ #}
+  {% if active_tab == 'predictions' %}
+
+  {% if error is defined and error %}
+    <div class="error-box">&#9888; {{ error }}</div>
+  {% else %}
+
+  <p style="font-size:.72rem;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px;">Select model</p>
+  <div class="model-pills">
+    <a href="/predictions?model=lightgbm&store={{ selected_store or '' }}&product={{ selected_product or '' }}&category={{ selected_category or '' }}&risk={{ selected_risk or '' }}"
+       class="model-pill {{ 'active' if selected_model == 'lightgbm' else '' }}">LightGBM</a>
+    <a href="/predictions?model=xgboost&store={{ selected_store or '' }}&product={{ selected_product or '' }}&category={{ selected_category or '' }}&risk={{ selected_risk or '' }}"
+       class="model-pill {{ 'active' if selected_model == 'xgboost' else '' }}">XGBoost</a>
+  </div>
+
+  <form method="GET" action="/predictions">
+    <input type="hidden" name="model" value="{{ selected_model }}">
+    <div class="filters">
+      <div class="filter-group">
+        <label>Store</label>
+        <select name="store" onchange="this.form.submit()">
+          <option value="">All stores</option>
+          {% for s in stores %}<option value="{{ s }}" {% if s == selected_store %}selected{% endif %}>{{ s }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Category</label>
+        <select name="category" onchange="this.form.submit()">
+          <option value="">All categories</option>
+          {% for c in categories %}<option value="{{ c }}" {% if c == selected_category %}selected{% endif %}>{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Product</label>
+        <select name="product" onchange="this.form.submit()">
+          <option value="">All products</option>
+          {% for p in products %}<option value="{{ p }}" {% if p == selected_product %}selected{% endif %}>{{ p }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Risk filter</label>
+        <select name="risk" onchange="this.form.submit()">
+          <option value="">All</option>
+          <option value="stockout"  {% if selected_risk == 'stockout'  %}selected{% endif %}>Stockout only</option>
+          <option value="overstock" {% if selected_risk == 'overstock' %}selected{% endif %}>Overstock only</option>
+        </select>
+      </div>
+    </div>
+  </form>
+
+  <div class="metrics">
+    <div class="metric normal">
+      <div class="m-label">Normal</div>
+      <div class="m-value">{{ summary.normal }}</div>
+    </div>
+    <div class="metric stockout">
+      <div class="m-label">Stockout risk</div>
+      <div class="m-value">{{ summary.stockout }}</div>
+    </div>
+    <div class="metric overstock">
+      <div class="m-label">Overstock risk</div>
+      <div class="m-value">{{ summary.overstock }}</div>
+    </div>
+    <div class="metric accent-m">
+      <div class="m-label">MAE</div>
+      <div class="m-value" style="font-size:1.4rem;">{{ summary.mae }}</div>
+      <div class="m-sub">mean abs error</div>
+    </div>
+    <div class="metric accent-m">
+      <div class="m-label">RMSE</div>
+      <div class="m-value" style="font-size:1.4rem;">{{ summary.rmse }}</div>
+      <div class="m-sub">root mean sq error</div>
+    </div>
+    <div class="metric accent-m">
+      <div class="m-label">R²</div>
+      <div class="m-value" style="font-size:1.4rem;">{{ summary.r2 }}</div>
+      <div class="m-sub">goodness of fit</div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-card-header">
+      <span>Prediction results — {{ selected_model | upper }}</span>
+      <small>{{ summary.total }} records &middot; page {{ page }} / {{ total_pages }}</small>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Store</th>
+          <th>Product</th>
+          <th>Inventory</th>
+          <th>Actual sold</th>
+          <th>Predicted sold</th>
+          <th>Abs error</th>
+          <th>Risk</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if pred_rows %}
+          {% for row in pred_rows %}
+          <tr>
+            <td class="label-col">{{ row.store_id }}</td>
+            <td class="label-col">{{ row.product_id }}</td>
+            <td>{{ row.inventory_level }}</td>
+            <td>{{ row.units_sold }}</td>
+            <td>{{ row.predicted_units_sold }}</td>
+            <td>{{ row.error }}</td>
+            <td><span class="badge badge-{{ row.risk }}">{{ row.risk }}</span></td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr class="empty-row"><td colspan="7">No records match the selected filters.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    {% if total_pages > 1 %}
+    <div class="pagination">
+      {% if page > 1 %}
+        <a href="/predictions?model={{ selected_model }}&store={{ selected_store or '' }}&product={{ selected_product or '' }}&category={{ selected_category or '' }}&risk={{ selected_risk or '' }}&page={{ page - 1 }}">&larr; Prev</a>
+      {% endif %}
+      {% for p in range(1, total_pages + 1) %}
+        {% if p == page %}
+          <span class="current">{{ p }}</span>
+        {% elif p <= 3 or p > total_pages - 3 or (p >= page - 1 and p <= page + 1) %}
+          <a href="/predictions?model={{ selected_model }}&store={{ selected_store or '' }}&product={{ selected_product or '' }}&category={{ selected_category or '' }}&risk={{ selected_risk or '' }}&page={{ p }}">{{ p }}</a>
+        {% elif p == 4 or p == total_pages - 3 %}
+          <span>&hellip;</span>
+        {% endif %}
+      {% endfor %}
+      {% if page < total_pages %}
+        <a href="/predictions?model={{ selected_model }}&store={{ selected_store or '' }}&product={{ selected_product or '' }}&category={{ selected_category or '' }}&risk={{ selected_risk or '' }}&page={{ page + 1 }}">Next &rarr;</a>
+      {% endif %}
+      <span class="pg-info">{{ summary.total }} total rows</span>
+    </div>
+    {% endif %}
+  </div>
+
+  {% endif %}
+  {% endif %}
 
 </body>
 </html>
